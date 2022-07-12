@@ -26,6 +26,7 @@ def depthmap2mesh(
     if isinstance(obj_file, str):
         obj_file = open(obj_file, 'w')
 
+    # Create mtl file
     if img_path is not None:
         if mtl_file is not None:
             mtl_file = open(mtl_file, 'w')
@@ -42,11 +43,13 @@ def depthmap2mesh(
     grid = np.mgrid[:h, :w].transpose(1, 2, 0)
     grid = grid - np.array((h, w)) / 2
 
+    # Filter out-of-range region
     valid = (depth > min_val) & (depth < max_val)
     v_inds = np.arange(1, depth.size + 1).reshape(h, w)
     v_inds[~valid] = 0
     depth[~valid] = 0
 
+    # Get vertices
     v_grid, v_depth = grid.reshape(-1, 2), depth.reshape(-1)
     v_grid *= v_depth[:, None] / d
     v_grid = np.stack((-v_grid[:, 0], v_grid[:, 1], -v_depth), -1)
@@ -55,17 +58,17 @@ def depthmap2mesh(
         ' '.join(['v', str(x), str(y), str(z)]) for (y, x, z) in v_grid))
     obj_file.write('\n')
 
-    # Texture grid
+    # Get texture vertices
     img_h, img_w = h, w
     if img_path is not None:
         img = cv2.imread(img_path)
         img_h, img_w = img.shape[:2]
-    vt_grid = (
-        np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((img_h, img_w)))
+    vt_grid = np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((img_h, img_w))
     vt_grid = vt_grid[::-1].reshape(-1, 2)
     obj_file.write('\n'.join(f'vt {str(x)} {str(y)}' for y, x in vt_grid))
     obj_file.write('\n')
 
+    # Filter edges and generate faces
     l_grid = np.stack(
         (v_inds[:-1, :-1], v_inds[1:, :-1], v_inds[:-1, 1:], v_inds[1:, 1:]))
     top_left, bottom_right = np.all(l_grid[:3], 0), np.all(l_grid[1:], 0)
@@ -80,6 +83,10 @@ def depthmap2mesh(
         l_list[:3, top_left.reshape(-1)],
         l_list[1:, bottom_right.reshape(-1)]), 1)
 
+    # By default, the top-left and bottom-right triangles divided by the
+    # diagonal line inside each square would be used for face generation, if
+    # any of them is invalid, try to find if either of the top-right and
+    # bottom-left triangles is usable.
     if np.any(invalid):
         top_right, bottom_left = (
             invalid & np.all(l_grid[[0, 1, 3]]),
