@@ -113,6 +113,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--image', help=(
         'Image corresponding to depth map to generate material, if not givin, '
         'no material file would be created'))
+    parser.add_argument('--grad-mask', help=(
+        'Image containing mask of x and y direction gradients in B and G '
+        'channels respectively'))
     parser.add_argument('-o', '--output', help=(
         'Output .obj file, defaults to [DEPTH_PATH].obj'))
     parser.add_argument('-m', '--material', help=(
@@ -126,6 +129,11 @@ if __name__ == '__main__':
     else:
         depth = np.load(str(depth_path)).astype(float)
 
+    grad_mask = None
+    if args.grad_mask is not None:
+        grad_mask = cv2.imread(args.grad_mask, cv2.IMREAD_UNCHANGED)
+        grad_mask = ~(grad_mask[..., :2] > 0)
+
     if args.output is None:
         args.output = str(depth_path.parent / (depth_path.stem + '.obj'))
 
@@ -133,4 +141,5 @@ if __name__ == '__main__':
         args.material = str(depth_path.parent / (depth_path.stem + '.mtl'))
 
     depthmap2mesh(
-        depth, args.output, img_path=args.image, mtl_file=args.material)
+        depth, args.output, img_path=args.image, mtl_file=args.material,
+        grad_mask=grad_mask)
