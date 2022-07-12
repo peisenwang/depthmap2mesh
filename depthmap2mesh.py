@@ -116,6 +116,9 @@ if __name__ == '__main__':
     parser.add_argument('--grad-mask', help=(
         'Image containing mask of x and y direction gradients in B and G '
         'channels respectively'))
+    parser.add_argument('--fov', type=float, default=90, help=(
+        'Field of view (max of horizonal and vertical) in degrees, '
+        'default: 90'))
     parser.add_argument('-o', '--output', help=(
         'Output .obj file, defaults to [DEPTH_PATH].obj'))
     parser.add_argument('-m', '--material', help=(
@@ -142,4 +145,4 @@ if __name__ == '__main__':
 
     depthmap2mesh(
         depth, args.output, img_path=args.image, mtl_file=args.material,
-        grad_mask=grad_mask)
+        grad_mask=grad_mask, fov=np.radians(args.fov))
