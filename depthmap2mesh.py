@@ -6,6 +6,19 @@ import cv2
 import numpy as np
 
 
+mtl_content = """newmtl {name}
+Ns 10.0000
+d 1.0000
+Tr 0.0000
+illum 2
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+map_Ka {path}
+map_Kd {path}
+"""
+
+
 def depthmap2mesh(
         depth, obj_file, img_path=None, mtl_file=None, mtl_name='colord',
         grad_mask=None, fov=(np.pi/2), min_val=0, max_val=np.inf):
@@ -16,6 +29,9 @@ def depthmap2mesh(
     if img_path is not None:
         if mtl_file is not None:
             mtl_file = open(mtl_file, 'w')
+
+        mtl_file.write(mtl_content.format(name=mtl_name, path=img_path))
+        mtl_file.close()
 
         obj_file.write(f'mtllib {mtl_file.name}\n')
         obj_file.write(f'usemtl {mtl_name}\n')
@@ -31,21 +47,23 @@ def depthmap2mesh(
     v_inds[~valid] = 0
     depth[~valid] = 0
 
-    # v_grid, v_depth = grid[valid], depth[valid]
     v_grid, v_depth = grid.reshape(-1, 2), depth.reshape(-1)
     v_grid *= v_depth[:, None] / d
-    v_grid = np.stack((v_grid[:, 0], -v_grid[:, 1], -v_depth), -1)
+    v_grid = np.stack((-v_grid[:, 0], v_grid[:, 1], -v_depth), -1)
 
     obj_file.write('\n'.join(
         ' '.join(['v', str(x), str(y), str(z)]) for (y, x, z) in v_grid))
     obj_file.write('\n')
 
-    # if img_path is not None:
+    # Texture grid
+    img_h, img_w = h, w
+    if img_path is not None:
+        img = cv2.imread(img_path)
+        img_h, img_w = img.shape[:2]
     vt_grid = (
-        np.mgrid[:h, :w].transpose(1, 2, 0).reshape(-1, 2)
-        / np.array((h, w)))
-    obj_file.write('\n'.join(
-        f'vt {str(x)} {str(y)}' for y, x in vt_grid))
+        np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((img_h, img_w)))
+    vt_grid = vt_grid[::-1].reshape(-1, 2)
+    obj_file.write('\n'.join(f'vt {str(x)} {str(y)}' for y, x in vt_grid))
     obj_file.write('\n')
 
     l_grid = np.stack(
@@ -83,8 +101,6 @@ def depthmap2mesh(
     obj_file.write('\n')
 
     obj_file.close()
-    if mtl_file is not None:
-        mtl_file.close()
 
 
 if __name__ == '__main__':
