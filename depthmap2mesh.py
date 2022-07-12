@@ -121,10 +121,10 @@ if __name__ == '__main__':
 
     depth_path = Path(args.depth)
     if depth_path.suffix == '.png':
-        depth = cv2.imread(str(depth_path), cv2.IMREAD_GRAYSCALE)
-        depth = depth.astype(float)
+        depth = cv2.imread(str(depth_path), cv2.IMREAD_UNCHANGED)
+        depth = depth.astype(float) / 1000
     else:
-        depth = np.load(str(depth_path)).astype(float) * 1000
+        depth = np.load(str(depth_path)).astype(float)
 
     if args.output is None:
         args.output = str(depth_path.parent / (depth_path.stem + '.obj'))
