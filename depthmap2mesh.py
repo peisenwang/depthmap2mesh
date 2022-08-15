@@ -59,11 +59,12 @@ def depthmap2mesh(
     obj_file.write('\n')
 
     # Get texture vertices
-    img_h, img_w = h, w
-    if img_path is not None:
-        img = cv2.imread(img_path)
-        img_h, img_w = img.shape[:2]
-    vt_grid = np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((img_h, img_w))
+    # img_h, img_w = h, w
+    # if img_path is not None:
+    #     img = cv2.imread(img_path)
+    #     img_h, img_w = img.shape[:2]
+    # vt_grid = np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((img_h, img_w))
+    vt_grid = np.mgrid[:h, :w].transpose(1, 2, 0) / np.array((h, w))
     vt_grid = vt_grid[::-1].reshape(-1, 2)
     obj_file.write('\n'.join(f'vt {str(x)} {str(y)}' for y, x in vt_grid))
     obj_file.write('\n')
